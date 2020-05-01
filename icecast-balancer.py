@@ -43,7 +43,10 @@ def get_listeners_from_icecast_servers():
 
             server_listeners[server] = sum(listeners_sum)
 
-    return server_listeners
+    sorted_server_listeners = {k: v for k, v in sorted(
+        server_listeners.items(), key=lambda item: item[1])}
+
+    return sorted_server_listeners
 
 
 # set flask app
