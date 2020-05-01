@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  icecast-balancer:
+    build: .
+    image: unclesamwk/icecast-balancer:latest
+    ports:
+      - 8080:8080
+    environment:
+      ICECAST_SERVERS: server1.example.com,server2.example.com
