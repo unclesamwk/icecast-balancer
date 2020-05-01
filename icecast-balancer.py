@@ -58,10 +58,14 @@ app = Flask(__name__)
 def icecast_redirector(path):
     if not path:
         return jsonify({"message": "Please give me an stream path!"}), 400
+
+    SECURE = "http"
+
+    if 'HTTP_X_FORWARDED_PROTO' in request.environ:
+        SECURE = request.environ["HTTP_X_FORWARDED_PROTO"]
+
     if request.is_secure:
         SECURE = "https"
-    else:
-        SECURE = "http"
 
     listeners = get_listeners_from_icecast_servers()
 
