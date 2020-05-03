@@ -23,7 +23,7 @@ def get_listeners_from_icecast_servers():
     for server in ICECAST_SERVERS:
         try:
             r = requests.get(
-                "http://{server}/status-json.xsl".format(server=server))
+                "http://{server}/status-json.xsl".format(server=server), timeout=5)
             r.raise_for_status()
         except:
             # if icecastserver is not reachable continue with next icecastserver
