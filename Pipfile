@@ -8,8 +8,9 @@ pylint = "*"
 autopep8 = "*"
 
 [packages]
-flask = "*"
-requests = "*"
+fastapi = "*"
+uvicorn = "*"
+httpx = "*"
 
 [requires]
-python_version = "3.8"
+python_version = "3.12"

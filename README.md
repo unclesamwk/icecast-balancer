@@ -1,36 +1,107 @@
 # icecast-balancer
 
-The prerequisite for using the icecast balancer productively is an icecast master-relay setup or all relays have the same mounts.
+A lightweight load balancer for Icecast relays. It redirects listeners to the relay with the fewest active connections, distributing the load evenly across all relays.
 
-https://www.icecast.org/docs/icecast-trunk/relaying/
+## Prerequisites
 
-## start container
-```
-docker run -itd \
+All configured Icecast relays must serve the same mountpoints. This is typically achieved with an [Icecast master-relay setup](https://www.icecast.org/docs/icecast-trunk/relaying/).
+
+## How it works
+
+1. A listener requests a stream, e.g. `http://balancer.example.com/live`
+2. The balancer queries the `/status-json.xsl` endpoint of each configured relay
+3. Listener counts are summed across all mountpoints per relay
+4. The listener is redirected (HTTP 307) to the relay with the fewest listeners
+
+Unreachable relays are automatically skipped.
+
+## Configuration
+
+| Environment Variable | Required | Default | Description |
+|---|---|---|---|
+| `ICECAST_RELAYS` | Yes | - | Comma-separated list of Icecast relay hostnames (without protocol) |
+| `PORT` | No | `8080` | Port the balancer listens on |
+
+## Quick Start
+
+### Docker Run
+
+```bash
+docker run -d \
   -p 8080:8080 \
-  -e ICECAST_SERVERS='server1.example.com,server2.example.com' \
+  -e ICECAST_RELAYS='relay1.example.com,relay2.example.com' \
   unclesamwk/icecast-balancer:latest
 ```
-## use icecastbalancer
 
-When the icecast balancer is started you can see the number of listeners for each specified server under the url http://0.0.0.0:8080/status.
+### Docker Compose
 
+```yaml
+services:
+  icecast-balancer:
+    build: .
+    image: unclesamwk/icecast-balancer:latest
+    ports:
+      - 8080:8080
+    environment:
+      ICECAST_RELAYS: relay1.example.com,relay2.example.com
 ```
-curl "http://0.0.0.0:8080/status"
-{"message":"No iceastrelay is reachable!"}
+
+```bash
+docker compose up -d
 ```
-or valid status with count of listeners for every icecast server
+
+## API
+
+### `GET /status`
+
+Returns the current listener count for each reachable relay, sorted ascending.
+
+```bash
+curl http://localhost:8080/status
 ```
-curl "http://0.0.0.0:8080/status"
+
+```json
 {
-    "server1.example.com":"55"
-    "server2.example.com":"15"
+  "relay2.example.com": 15,
+  "relay1.example.com": 55
 }
 ```
-If you want to call up a stream, just enter the url of the icecast-balancer and the path.
 
-Example: http://0.0.0.0:8080/stream
+### `GET /<mountpoint>`
 
-### contributing
+Redirects to the least-loaded relay for the given mountpoint.
 
-Pull requests are welcome
+```bash
+curl -v http://localhost:8080/live
+# < HTTP/1.1 307 Temporary Redirect
+# < location: http://relay2.example.com/live
+```
+
+## Reverse Proxy
+
+The balancer supports running behind a reverse proxy (e.g. Traefik, nginx). It respects the `X-Forwarded-Proto` header to generate correct redirect URLs with HTTPS.
+
+## Local Development
+
+```bash
+pip install -r requirements.txt
+ICECAST_RELAYS='relay1.example.com,relay2.example.com' uvicorn app.main:app --reload --port 8080
+```
+
+## Project Structure
+
+```
+icecast-balancer/
+├── app/
+│   ├── __init__.py
+│   └── main.py
+├── Dockerfile
+├── docker-compose.yml
+├── Pipfile
+├── requirements.txt
+└── README.md
+```
+
+## Contributing
+
+Pull requests are welcome.

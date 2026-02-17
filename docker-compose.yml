@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 services:
   icecast-balancer:
@@ -7,4 +7,4 @@ services:
     ports:
       - 8080:8080
     environment:
-      ICECAST_SERVERS: server1.example.com,server2.example.com
+      ICECAST_RELAYS: server1.example.com,server2.example.com
