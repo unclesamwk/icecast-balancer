@@ -4,6 +4,7 @@ from fastapi.responses import RedirectResponse, JSONResponse
 import httpx
 import os
 import sys
+import time
 import uvicorn
 
 # check if ICECAST_RELAYS env exists
@@ -20,19 +21,28 @@ if not ICECAST_RELAYS:
     sys.exit(1)
 
 PORT = int(os.getenv("PORT", "8080"))
+ICECAST_RELAY_SCHEME = os.getenv("ICECAST_RELAY_SCHEME", "http")
+CACHE_TTL = int(os.getenv("CACHE_TTL", "60"))
 
 print("icecast-balancer starts with following servers ...")
 print(ICECAST_RELAYS)
 
+_cache = {}
+_cache_time = 0.0
+
 
 async def get_listeners_from_icecast_servers():
+    global _cache, _cache_time
+
+    if CACHE_TTL > 0 and _cache and (time.monotonic() - _cache_time) < CACHE_TTL:
+        return _cache
 
     server_listeners = {}
 
     async with httpx.AsyncClient(timeout=5) as client:
         for server in ICECAST_RELAYS:
             try:
-                r = await client.get(f"http://{server}/status-json.xsl")
+                r = await client.get(f"{ICECAST_RELAY_SCHEME}://{server}/status-json.xsl")
                 r.raise_for_status()
             except (httpx.RequestError, httpx.HTTPStatusError):
                 # if icecastserver is not reachable continue with next icecastserver
@@ -54,6 +64,10 @@ async def get_listeners_from_icecast_servers():
 
     sorted_server_listeners = dict(sorted(
         server_listeners.items(), key=lambda item: item[1]))
+
+    if CACHE_TTL > 0 and sorted_server_listeners:
+        _cache = sorted_server_listeners
+        _cache_time = time.monotonic()
 
     return sorted_server_listeners
 

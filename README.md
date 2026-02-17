@@ -20,6 +20,8 @@ Unreachable relays are automatically skipped.
 | Environment Variable | Required | Default | Description |
 |---|---|---|---|
 | `ICECAST_RELAYS` | Yes | - | Comma-separated list of Icecast relay hostnames (without protocol) |
+| `ICECAST_RELAY_SCHEME` | No | `http` | Protocol used to query relay status (`http` or `https`) |
+| `CACHE_TTL` | No | `60` | Seconds to cache relay listener counts (`0` to disable) |
 | `PORT` | No | `8080` | Port the balancer listens on |
 
 ## Quick Start
